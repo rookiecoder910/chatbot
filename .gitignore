@@ -1,1 +1,4 @@
-
+GEMINI_API_KEY=AIzaSyCSAnIQBmpzhakSmz7dU6aOo40s6zlnCXY
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=chatbotdb
+MONGO_COLLECTION=messages
