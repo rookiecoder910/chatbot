@@ -36,33 +36,47 @@ app.post('/api/gemini', async (req, res) => {
   if (!message) return res.status(400).json({ error: 'Message is required.' });
 
   try {
+  // Use a concise prompt for all responses. Only limit response length for greetings.
+  let prompt = "Give a concise, clear, and helpful answer: " + message;
+  let generationConfig = undefined;
+  let isGreeting = typeof message === 'string' && message.trim().length <= 5;
+  if (isGreeting) {
+    prompt += '\nReply in 5 words or less.';
+    generationConfig = { maxOutputTokens: 10 };
+  }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return res.status(500).json({ error: 'Gemini API key not set.' });
 
-    const descriptivePrompt = "Give a detailed, descriptive, and engaging answer. You can be witty and roast the user if appropriate, but keep it fun and not mean-spirited: " + message;
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          { parts: [{ text: descriptivePrompt }], role: "user" }
-        ]
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        ...(generationConfig ? { generationConfig } : {})
       })
     });
-  const data = await response.json();
+    const data = await response.json();
   console.log('Gemini API response:', JSON.stringify(data, null, 2));
   const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't get a response.";
+  // For greetings, trim to 10 words. For all else, return full response.
+  function trimToWords(text, maxWords) {
+    if (!text) return '';
+    const words = text.split(/\s+/);
+    return words.slice(0, maxWords).join(' ') + (words.length > maxWords ? '...' : '');
+  }
+  const finalReply = isGreeting ? trimToWords(reply, 10) : reply;
 
     // Save to MongoDB
     if (messagesCollection) {
       await messagesCollection.insertOne({
         user: message,
-        bot: reply,
+        bot: finalReply,
         timestamp: new Date()
       });
     }
 
-    res.json({ reply });
+    res.json({ reply: finalReply });
   } catch (err) {
     res.status(500).json({ error: 'Error contacting Gemini API.' });
   }

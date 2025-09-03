@@ -62,7 +62,7 @@ async function getGeminiResponse(message) {
 }
 
 function showWelcome(save = true) {
-  appendMessage('bot', "Hello! I'm your Gemini-powered chatbot. How can I assist you today?", save);
+  appendMessage('bot', "Hello! I'm your AI-powered chatbot. How can I assist you today?", save);
 }
 
 function renderHistory() {
